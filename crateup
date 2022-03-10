@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /usr/bin/zsh
 
 if [ -z "$1" ]; then
     echo "Please enter a crate name"
@@ -29,5 +29,5 @@ RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
 VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
 
 print "\n"
-echo "Crate Name: $SELECTED"
-echo "Latest Version: $VERSION"
+echo "[dependancies]"
+echo "\"$SELECTED\" = \"$VERSION\""
