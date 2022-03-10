@@ -1,0 +1,33 @@
+#! /usr/bin/zsh
+
+if [ -z "$1" ]; then
+    echo "Please enter a crate name"
+    exit 1
+fi
+
+# I'll refactor when I refactor smh
+SEARCH_QUERY=$(echo $1 | awk '{sub(" ", "+")}1' - )
+QUERY_URL="https://lib.rs/search?q=$SEARCH_QUERY"
+RAW_CRATES=$( curl -s $QUERY_URL | grep -Ew "\<h4\>" )
+CRATE_LIST=$( echo $RAW_CRATES | awk 'NR>2 {print last} {last=$0}' - )
+CRATES=$(echo $CRATE_LIST| awk '{sub("<h4>", "") sub("</h4>", "")}1' - | head -n 10)
+
+counter=0
+for x in $(echo $CRATES)
+do
+    echo "[$counter] ${x}"
+    counter=$(( $counter + 1 ))
+done
+
+printf "Crate Number: "
+read CHOICE 
+
+SELECTED=$( echo $CRATES | awk "NR==$(( $CHOICE + 1 )){ print }" - )
+CRATE_PAGE=$( curl -s "https://lib.rs/crates/$SELECTED" )
+
+RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
+VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
+
+print "\n"
+echo "Crate Name: $SELECTED"
+echo "Latest Version: $VERSION"
