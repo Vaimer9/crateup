@@ -1,12 +1,13 @@
 #! /usr/bin/zsh
+# Changing  ^^^ to bash changes something and I have no idea why the script doesn't work
+
 
 if [ -z "$1" ]; then
     echo "Please enter a crate name"
     exit 1
 fi
 
-# I'll refactor when I refactor smh
-SEARCH_QUERY=$(echo $1 | awk '{sub(" ", "+")}1' - )
+SEARCH_QUERY=$( echo $1 | awk '{sub(" ", "+")}1' - )
 QUERY_URL="https://lib.rs/search?q=$SEARCH_QUERY"
 RAW_CRATES=$( curl -s $QUERY_URL | grep -Ew "\<h4\>" )
 CRATE_LIST=$( echo $RAW_CRATES | awk 'NR>2 {print last} {last=$0}' - )
@@ -24,10 +25,9 @@ read CHOICE
 
 SELECTED=$( echo $CRATES | awk "NR==$(( $CHOICE + 1 )){ print }" - )
 CRATE_PAGE=$( curl -s "https://lib.rs/crates/$SELECTED" )
-
 RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
 VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
 
-print "\n"
+printf "\n"
 echo "[dependancies]"
-echo "\"$SELECTED\" = \"$VERSION\""
+echo "$SELECTED = \"$VERSION\""
