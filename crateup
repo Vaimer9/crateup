@@ -1,33 +1,68 @@
 #! /usr/bin/zsh
-# Changing  ^^^ to bash changes something and I have no idea why the script doesn't work
+
+function check() {
+    if [ -z "$1" ]; then
+        echo "$2"
+        exit 1
+    fi
+}
+
+check $1 "Please enter crate name"
 
 
-if [ -z "$1" ]; then
-    echo "Please enter a crate name"
-    exit 1
-fi
+function sendhelp() {
+    echo """
+        Crateup
+flags:
+    
+    -q    Quite    Get the name of the specified crate without any other input
 
-SEARCH_QUERY=$( echo $1 | awk '{sub(" ", "+")}1' - )
-QUERY_URL="https://lib.rs/search?q=$SEARCH_QUERY"
-RAW_CRATES=$( curl -s $QUERY_URL | grep -Ew "\<h4\>" )
-CRATE_LIST=$( echo $RAW_CRATES | awk 'NR>2 {print last} {last=$0}' - )
-CRATES=$(echo $CRATE_LIST| awk '{sub("<h4>", "") sub("</h4>", "")}1' - | head -n 10)
+"""
+}
 
-counter=0
-for x in $(echo $CRATES)
-do
-    echo "[$counter] ${x}"
-    counter=$(( $counter + 1 ))
-done
+function getcratelist() {
+    local SEARCH_QUERY=$( echo $1 | awk '{ sub(" ", "+") }1' - )
+    local QUERY_URL="https://lib.rs/search?q=$SEARCH_QUERY"
+    local RAW_CRATES=$( curl -s $QUERY_URL | grep -Ew "\<h4\>" )
+    local CRATE_LIST=$( echo $RAW_CRATES | awk 'NR>2 { print last } { last=$0 }' - )
+    CRATES=$(echo $CRATE_LIST| awk '{ sub("<h4>", "") sub( "</h4>", "" ) }1' - | head -n 10)
+}
 
-printf "Crate Number: "
-read CHOICE 
+function printcrates() {
+    local COUNTER=0
 
-SELECTED=$( echo $CRATES | awk "NR==$(( $CHOICE + 1 )){ print }" - )
-CRATE_PAGE=$( curl -s "https://lib.rs/crates/$SELECTED" )
-RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
-VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
+    for x in $(echo $1); do
+        echo "[$COUNTER] ${x}"
+        counter=$(( $COUNTER + 1 ))
+    done
+}
 
-printf "\n"
-echo "[dependancies]"
-echo "$SELECTED = \"$VERSION\""
+function getversion() {
+    if [ $1 = 0 ]; then
+        printf "Crate Number: "
+        read CHOICE
+
+        local SELECTED=$( echo $1 | awk "NR==$(( $CHOICE + 1 )){ print }" - )
+    elif [ $1 = 1 ]; then
+        local SELECTED=$2
+    fi
+    local CRATE_PAGE=$( curl -s "https://lib.rs/crates/$SELECTED" )
+    local RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
+    VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
+    PRETTY_VERSION="""\
+[dependancies]
+$SELECTED = "$VERSION"
+"""
+}
+
+# Process Arguments
+case $1 in 
+    --help)
+        sendhelp
+        exit 0
+    ;;
+
+    -q)
+        getversion 1 $2
+        printf $PRETTY_VERSION
+esac
