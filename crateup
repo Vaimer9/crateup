@@ -1,5 +1,8 @@
 #! /usr/bin/zsh
 
+# Just in case there are name changes
+APP_NAME="crateup"
+
 function check() {
     if [ -z "$1" ]; then
         echo "$2"
@@ -7,8 +10,7 @@ function check() {
     fi
 }
 
-check $1 "Please enter crate name"
-
+check $1 "$APP_NAME: please enter crate name"
 
 function sendhelp() {
     echo """
@@ -26,14 +28,15 @@ function getcratelist() {
     local RAW_CRATES=$( curl -s $QUERY_URL | grep -Ew "\<h4\>" )
     local CRATE_LIST=$( echo $RAW_CRATES | awk 'NR>2 { print last } { last=$0 }' - )
     CRATES=$(echo $CRATE_LIST| awk '{ sub("<h4>", "") sub( "</h4>", "" ) }1' - | head -n 10)
+    check $CRATES "$APP_NAME: Could not find"
 }
 
 function printcrates() {
-    local COUNTER=0
+    local counter=0
 
     for x in $(echo $1); do
-        echo "[$COUNTER] ${x}"
-        counter=$(( $COUNTER + 1 ))
+        echo "[$counter] ${x}"
+        counter=$(( $counter + 1 ))
     done
 }
 
@@ -42,7 +45,7 @@ function getversion() {
         printf "Crate Number: "
         read CHOICE
 
-        local SELECTED=$( echo $1 | awk "NR==$(( $CHOICE + 1 )){ print }" - )
+        local SELECTED=$( echo $2 | awk "NR==$(( $CHOICE + 1 )){ print }" - )
     elif [ $1 = 1 ]; then
         local SELECTED=$2
     fi
@@ -50,8 +53,9 @@ function getversion() {
     local RAW_VERSION=$( echo $CRATE_PAGE | grep -Ew "softwareVersion" )
     VERSION=$( echo $RAW_VERSION | sed -r 's/<tr><th content="([0-9.]+)".*/\1/' )
     PRETTY_VERSION="""\
+
 [dependancies]
-$SELECTED = "$VERSION"
+$SELECTED = \"$VERSION\"
 """
 }
 
@@ -64,5 +68,16 @@ case $1 in
 
     -q)
         getversion 1 $2
+        check $2 "$APP_NAME: please enter crate name"
         printf $PRETTY_VERSION
+        exit 0
+    ;;
+
+    *)
+        getcratelist $1
+        printcrates $CRATES
+        getversion 0 $CRATES
+        printf $PRETTY_VERSION
+        exit 0
+    ;;
 esac
