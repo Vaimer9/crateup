@@ -17,7 +17,7 @@ function sendhelp() {
         Crateup
 flags:
     
-    -q    Quite    Get the name of the specified crate without any other input
+    -q    Quiet    Get the name of the specified crate without any other input
 
 """
 }
